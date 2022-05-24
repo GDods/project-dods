@@ -1,0 +1,35 @@
+USE [Financas]
+GO
+
+/****** Object:  Table [dbo].[D_VLR]    Script Date: 24/05/2022 11:08:14 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[D_VLR](
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[FATO_ID] [int] NOT NULL,
+	[REF] [datetime] NOT NULL,
+	[VLR_0] [float] NOT NULL,
+	[VLR_1] [float] NULL,
+	[VLR_2] [float] NULL,
+	[VLR_3] [float] NULL,
+	[VLR_4] [float] NULL,
+	[VLR_5] [float] NULL,
+	[VLR_6] [float] NULL,
+	[VLR_7] [float] NULL,
+	[VLR_8] [float] NULL,
+	[VLR_9] [float] NULL,
+ CONSTRAINT [PK_D_VLR] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[D_VLR] ADD  CONSTRAINT [DF_D_VLR_REF]  DEFAULT (getdate()) FOR [REF]
+GO
+
+

@@ -1,0 +1,35 @@
+USE [Financas]
+GO
+
+/****** Object:  Table [dbo].[D_DAT]    Script Date: 24/05/2022 12:06:26 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[D_DAT](
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[FATO_ID] [int] NOT NULL,
+	[REF] [datetime] NOT NULL,
+	[DAT_0] [datetime] NOT NULL,
+	[DAT_1] [datetime] NULL,
+	[DAT_2] [datetime] NULL,
+	[DAT_3] [datetime] NULL,
+	[DAT_4] [datetime] NULL,
+	[DAT_5] [datetime] NULL,
+	[DAT_6] [datetime] NULL,
+	[DAT_7] [datetime] NULL,
+	[DAT_8] [datetime] NULL,
+	[DAT_9] [datetime] NULL,
+ CONSTRAINT [PK_D_DAT] PRIMARY KEY CLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+ALTER TABLE [dbo].[D_DAT] ADD  CONSTRAINT [DF_D_DAT_REF]  DEFAULT (getdate()) FOR [REF]
+GO
+
+
