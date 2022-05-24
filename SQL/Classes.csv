@@ -1,0 +1,9 @@
+﻿NOME;ALIAS;FORMATO;MASCARA;VISIVEL
+TEX_0;Produto;string;;True
+TEX_1;Categoria;string;;True
+TEX_2;Macro;string;;True
+VLR_0;Valor;float;;True
+VLR_1;Quantidade;float;;True
+TEX_3;Unidade;string;;True
+DAT_0;Data_Compra;datetime;%d/%m/%Y;True
+VLR_2;Valor_Unitario;float;;False
