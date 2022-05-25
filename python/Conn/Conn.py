@@ -9,6 +9,7 @@ import pyodbc
 import json
 from datetime import datetime as dt
 
+
 # from Conn import Financas
 
 class Conn:
@@ -64,7 +65,22 @@ class Conn:
         classe =  fato[2]
         result = Conn.__ler_registros(self, classe, ID)
         return result
-            
+    
+    def ler_tabela(self, classe):
+        self.cursor.execute(self.__select_classe(classe))
+        fato = self.cursor.fetchall()
+        IDs = []
+        for row in fato:
+            IDs.append(row[0])
+        result = Conn.__ler_registros(self, classe, IDs)
+        return result
+    
+    def __select_classe(self, classe):
+        result = 'SELECT * FROM F_FATO WHERE CLASSE = {}'.format(classe)
+        if self.debug:
+            print(result)
+        return result
+    
     def __ler_registros(self, classe, IDs):
         result = {}
         IDs = [IDs] if type(IDs) == int else IDs
@@ -94,7 +110,7 @@ class Conn:
                                   Conn.__col_range(nome, 'VLR'))
             result = Conn.__merge(result, ID, dat, 'DAT', 
                                   Conn.__col_range(nome, 'DAT'))
-        
+            
         for i in range(len(nome)):
             result[param['ALIAS'][i]] = result.pop(nome[i])
         
@@ -110,7 +126,6 @@ class Conn:
         return result
     
     def __merge(result, ID, arr, dimn, col_range):
-            # i = 0
             n_e = True
             for r in arr:
                 if ID == r[0]:
@@ -120,7 +135,6 @@ class Conn:
                             result['{}_{}'.format(dimn, i-1)].append(r[i])
                         else:
                             result['{}_{}'.format(dimn, i-1)] = [r[i]]
-                        # i+=1
                     break
             if n_e:
                 for i in range(col_range):
@@ -128,11 +142,12 @@ class Conn:
                         result['{}_{}'.format(dimn, i-1)].append(None)
                     else:
                         result['{}_{}'.format(dimn, i-1)] = [None]
-                    # i+=1
-            result.pop('TEX_-1', None)
-            result.pop('VLR_-1', None)
-            result.pop('DAT_-1', None)
-            
+            col = []    
+            for k in result:
+                if '-' in k:
+                    col.append(k)
+            for k in col:
+                del result[k]
             return result
     
     def __select_dimn(self, table, nome, IDs):
@@ -142,19 +157,19 @@ class Conn:
                 result += '[{}], '.format(n)
         result = '{} '.format(result[:-2])
         result += 'FROM D_{} '.format(table)
+        result += 'WHERE [ID] in (SELECT max([ID]) as [ID] '
+        result += 'FROM D_{} '.format(table)
         result += 'WHERE [FATO_ID] in ('
         for ID in IDs:
             result += '{}, '.format(ID)
-        result = '{})'.format(result[:-2])
+        result = '{}) '.format(result[:-2])
+        result += 'GROUP BY [FATO_ID])'
         if self.debug:
             print(result)
         return result
 
     def __select_ID(self, table, ID):
-        if ID == 0:
-            result = 'SELECT * FROM {}'.format(table)
-        else:
-            result = 'SELECT * FROM {} WHERE ID = {}'.format(table, ID)
+        result = 'SELECT * FROM {} WHERE ID = {}'.format(table, ID)
         if self.debug:
             print(result)
         return result
@@ -190,10 +205,34 @@ class Conn:
                                                param,
                                                result))
         return result
-    
+
+
+from flask import Flask, jsonify
+from flask_restful import Resource, Api
+
+app = Flask(__name__)
+api = Api(app)
+
 class Financas(Conn):
     def __init__(self, debug=True):
-        super().__init__('Financas', debug)
+        Conn.__init__(self, 'Financas', debug)
+
+class simple_find(Resource, Financas):
+    def get(self, ID):
+        result = self.ler_ID(ID)
+        return jsonify(result)
+    
+class mult_find(Resource, Financas):
+    def get(self, ID):
+        result = self.ler_tabela(ID)
+        return jsonify(result)
+
+api.add_resource(simple_find, '/simple_find/<int:ID>')
+api.add_resource(mult_find, '/mult_find/<int:ID>')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+        
 
         
 
