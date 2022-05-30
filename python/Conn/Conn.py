@@ -45,7 +45,39 @@ class Conn:
         self.cursor.close()
         self.conn.close()
         
-    def novo_registro(self, classe, tex, vlr, dat):
+    def novo_registro(self, classe, d):
+        self.cursor.execute(self.__select_ID('P_CLASSE', classe))
+        d_classe = json.loads(self.cursor.fetchone()[1])
+        
+        del_col = []
+        for k in d:
+            if k not in d_classe['ALIAS']:
+                del_col.append(k)
+        for dl in del_col:
+            del d[dl]
+        
+        for i in range(len(d_classe['NOME'])):
+            if d_classe['ALIAS'][i] not in d:
+                continue
+            d[d_classe['NOME'][i]] = d.pop(d_classe['ALIAS'][i])
+            
+        print(d)
+        
+        tex = {}
+        vlr = {}
+        dat = {}
+        
+        for k in d:
+            if 'TEX' in k:
+                tex[k] = d[k]
+            if 'VLR' in k:
+                vlr[k] = d[k]
+            if 'DAT' in k:
+                dat[k] = d[k]
+        
+        self.__insert_array(classe, tex, vlr, dat)
+        
+    def __insert_array(self, classe, tex, vlr, dat):
         self.cursor.execute(self.__insert_fato(classe, tex, vlr, dat))
         self.cursor.commit()
         ID = self.cursor.execute("SELECT @@IDENTITY AS ID;").fetchone()[0]
@@ -85,8 +117,8 @@ class Conn:
         result = {}
         IDs = [IDs] if type(IDs) == int else IDs
         self.cursor.execute(self.__select_ID('P_CLASSE', classe))
-        param = json.loads(self.cursor.fetchone()[1])
-        nome = param['NOME']
+        d_classe = json.loads(self.cursor.fetchone()[1])
+        nome = d_classe['NOME']
         
         if 'TEX_0' in nome:
             self.cursor.execute(self.__select_dimn('TEX', nome, IDs))
@@ -112,7 +144,7 @@ class Conn:
                                   Conn.__col_range(nome, 'DAT'))
             
         for i in range(len(nome)):
-            result[param['ALIAS'][i]] = result.pop(nome[i])
+            result[d_classe['ALIAS'][i]] = result.pop(nome[i])
         
         return result
         
@@ -186,28 +218,28 @@ class Conn:
                                                  result))
         return result
     
-    def __insert_dimn(self, param, ID, lista):
-        result = 'INSERT INTO D_{} (FATO_ID, '.format(param)
-        for i in range(len(lista)):
-            result += '{}_{}, '.format(param, i)
+    def __insert_dimn(self, dimn, ID, d):
+        result = 'INSERT INTO D_{} (FATO_ID, '.format(dimn)
+        for i in range(len(d)):
+            result += '{}_{}, '.format(dimn, i)
         result = '{}) VALUES ({}, '.format(result[:-2], ID)
-        for i in lista:
-            if param == 'VLR':
-                result += '{}, '.format(i)
-            if param == 'TEX':
-                result += "'{}', ".format(i)
-            if param == 'DAT':
-                result += "CONVERT(DATETIME, '{}', 103), ".format(i.strftime('%d/%m/%Y %H:%M:%S'))
+        for i in d:
+            if dimn == 'VLR':
+                result += '{}, '.format(d[i])
+            if dimn == 'TEX':
+                result += "'{}', ".format(d[i])
+            if dimn == 'DAT':
+                result += "CONVERT(DATETIME, '{}', 103), ".format(d[i].strftime('%d/%m/%Y %H:%M:%S'))
                 
         result = '{})'.format(result[:-2])
         if self.debug:
             print('{} - QUERY D_{}: {}'.format(dt.now().strftime('%d/%m/%Y %H:%M:%S'),
-                                               param,
+                                               dimn,
                                                result))
         return result
 
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_restful import Resource, Api
 
 app = Flask(__name__)
@@ -227,8 +259,15 @@ class mult_find(Resource, Financas):
         result = self.ler_tabela(ID)
         return jsonify(result)
 
+class new_item(Resource, Financas):
+    def post(self, classe):
+        d = request.get_json()
+        self.novo_registro(classe, d)
+        return '', 201
+    
 api.add_resource(simple_find, '/simple_find/<int:ID>')
 api.add_resource(mult_find, '/mult_find/<int:ID>')
+api.add_resource(new_item, '/new_item/<int:classe>')
 
 if __name__ == '__main__':
     app.run(debug=True)
