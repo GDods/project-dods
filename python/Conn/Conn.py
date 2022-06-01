@@ -46,27 +46,21 @@ class Conn:
         self.conn.close()
         
     def novo_registro(self, classe, d):
+        tex = {}
+        vlr = {}
+        dat = {}
+        del_col = []
         self.cursor.execute(self.__select_ID('P_CLASSE', classe))
         d_classe = json.loads(self.cursor.fetchone()[1])
-        
-        del_col = []
         for k in d:
             if k not in d_classe['ALIAS']:
                 del_col.append(k)
         for dl in del_col:
             del d[dl]
-        
         for i in range(len(d_classe['NOME'])):
             if d_classe['ALIAS'][i] not in d:
                 continue
             d[d_classe['NOME'][i]] = d.pop(d_classe['ALIAS'][i])
-            
-        print(d)
-        
-        tex = {}
-        vlr = {}
-        dat = {}
-        
         for k in d:
             if 'TEX' in k:
                 tex[k] = d[k]
@@ -74,8 +68,22 @@ class Conn:
                 vlr[k] = d[k]
             if 'DAT' in k:
                 dat[k] = d[k]
-        
         self.__insert_array(classe, tex, vlr, dat)
+        
+    def update_status_ID(self, ID, activate):
+        self.cursor.execute(self.__update_array(ID, activate))
+        
+    def __update_array(self, ID, activate):
+        result = 'UPDATE F_FATO SET '
+        if activate == 1:
+            result += "[DEL] = NULL "
+        else:
+            now = dt.now().strftime('%d/%m/%Y %H:%M:%S')
+            result += "[DEL] = CONVERT(DATETIME, '{}', 103) ".format(now)
+        result += 'WHERE ID = {}'.format(ID)
+        if self.debug:
+            print(result)
+        return result
         
     def __insert_array(self, classe, tex, vlr, dat):
         self.cursor.execute(self.__insert_fato(classe, tex, vlr, dat))
@@ -98,8 +106,8 @@ class Conn:
         result = Conn.__ler_registros(self, classe, ID)
         return result
     
-    def ler_tabela(self, classe):
-        self.cursor.execute(self.__select_classe(classe))
+    def ler_tabela(self, classe, actives):
+        self.cursor.execute(self.__select_classe(classe, actives))
         fato = self.cursor.fetchall()
         IDs = []
         for row in fato:
@@ -107,8 +115,12 @@ class Conn:
         result = Conn.__ler_registros(self, classe, IDs)
         return result
     
-    def __select_classe(self, classe):
-        result = 'SELECT * FROM F_FATO WHERE CLASSE = {}'.format(classe)
+    def __select_classe(self, classe, actives):
+        result = 'SELECT * FROM F_FATO WHERE CLASSE = {} '.format(classe)
+        if actives:
+            result += 'AND [DEL] IS NULL'
+        else:
+            result += 'AND [DEL] IS NOT NULL'
         if self.debug:
             print(result)
         return result
@@ -255,8 +267,11 @@ class simple_find(Resource, Financas):
         return jsonify(result)
     
 class mult_find(Resource, Financas):
-    def get(self, ID):
-        result = self.ler_tabela(ID)
+    def get(self, ID, actives):
+        if actives == 0:
+            result = self.ler_tabela(ID, False)
+        else:
+            result = self.ler_tabela(ID, True)
         return jsonify(result)
 
 class new_item(Resource, Financas):
@@ -266,7 +281,7 @@ class new_item(Resource, Financas):
         return '', 201
     
 api.add_resource(simple_find, '/simple_find/<int:ID>')
-api.add_resource(mult_find, '/mult_find/<int:ID>')
+api.add_resource(mult_find, '/mult_find/<int:ID>/<int:actives>')
 api.add_resource(new_item, '/new_item/<int:classe>')
 
 if __name__ == '__main__':
