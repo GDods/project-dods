@@ -13,11 +13,11 @@ from flask_restful import Resource, Api
 app = Flask(__name__)
 api = Api(app)
 
-class Financas(Conn):
+class main(Conn):
     def __init__(self, debug=True):
         Conn.__init__(self, 'Financas', debug)
 
-class simple_array(Resource, Financas):
+class simple_array(Resource, main):
     def get(self, ID):
         result = self.read_ID(ID)
         return jsonify(result)
@@ -31,7 +31,7 @@ class simple_array(Resource, Financas):
         self.new_array(ID, d)
         return '', 201
     
-class mult_array(Resource, Financas):
+class mult_array(Resource, main):
     def get(self, ID, actives):
         if actives == 0:
             result = self.read_table(ID, False)

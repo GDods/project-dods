@@ -8,8 +8,6 @@ Created on Mon May 23 15:33:26 2022
 import pyodbc
 import json
 from datetime import datetime as dt
-
-
 # from Conn import Financas
 
 class Conn:
