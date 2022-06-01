@@ -63,15 +63,21 @@ class Conn:
             d[d_classe['NOME'][i]] = d.pop(d_classe['ALIAS'][i])
         for k in d:
             if 'TEX' in k:
-                tex[k] = d[k]
+                tex[k] = d[k] 
             if 'VLR' in k:
                 vlr[k] = d[k]
             if 'DAT' in k:
                 dat[k] = d[k]
         self.__insert_array(classe, tex, vlr, dat)
         
-    def update_status_ID(self, ID, activate):
+    def update_status_ID(self, ID):
+        fato = self.__ler_fato_ID(ID)
+        if fato[3] == None:
+            activate = 0
+        else:
+            activate = 1
         self.cursor.execute(self.__update_array(ID, activate))
+        self.cursor.commit()
         
     def __update_array(self, ID, activate):
         result = 'UPDATE F_FATO SET '
@@ -100,11 +106,15 @@ class Conn:
             self.cursor.commit()
             
     def ler_ID(self, ID):
-        self.cursor.execute(self.__select_ID('F_FATO', ID))
-        fato = self.cursor.fetchone()
-        classe =  fato[2]
+        fato = self.__ler_fato_ID(ID)
+        classe = fato[2]
         result = Conn.__ler_registros(self, classe, ID)
         return result
+    
+    def __ler_fato_ID(self, ID):
+        self.cursor.execute(self.__select_ID('F_FATO', ID))
+        fato = self.cursor.fetchone()
+        return fato
     
     def ler_tabela(self, classe, actives):
         self.cursor.execute(self.__select_classe(classe, actives))
@@ -261,28 +271,30 @@ class Financas(Conn):
     def __init__(self, debug=True):
         Conn.__init__(self, 'Financas', debug)
 
-class simple_find(Resource, Financas):
+class simple_array(Resource, Financas):
     def get(self, ID):
         result = self.ler_ID(ID)
         return jsonify(result)
     
-class mult_find(Resource, Financas):
+    def put(self, ID):
+        self.update_status_ID(ID)
+        return '', 201
+
+    def post(self, ID):
+        d = request.get_json()
+        self.novo_registro(ID, d)
+        return '', 201
+    
+class mult_array(Resource, Financas):
     def get(self, ID, actives):
         if actives == 0:
             result = self.ler_tabela(ID, False)
         else:
             result = self.ler_tabela(ID, True)
         return jsonify(result)
-
-class new_item(Resource, Financas):
-    def post(self, classe):
-        d = request.get_json()
-        self.novo_registro(classe, d)
-        return '', 201
     
-api.add_resource(simple_find, '/simple_find/<int:ID>')
-api.add_resource(mult_find, '/mult_find/<int:ID>/<int:actives>')
-api.add_resource(new_item, '/new_item/<int:classe>')
+api.add_resource(simple_array, '/simple_array/<int:ID>')
+api.add_resource(mult_array, '/mult_array/<int:ID>/<int:actives>')
 
 if __name__ == '__main__':
     app.run(debug=True)
